@@ -6,22 +6,33 @@ interface PaymentProps {
 }
 
 type PaymentStep = 'plans' | 'checkout' | 'processing' | 'success';
+type PaymentMethod = 'card' | 'pix';
 
 const Payment: React.FC<PaymentProps> = ({ onComplete }) => {
   const [step, setStep] = useState<PaymentStep>('plans');
+  const [method, setMethod] = useState<PaymentMethod>('card');
   const [selectedPlan, setSelectedPlan] = useState<{name: string, price: string} | null>(null);
   const [cardData, setCardData] = useState({ number: '', name: '', expiry: '', cvv: '' });
+  const [copied, setCopied] = useState(false);
+
+  const pixKey = "16997609082";
 
   const handlePlanSelect = (name: string, price: string) => {
     setSelectedPlan({ name, price });
     setStep('checkout');
   };
 
+  const copyPixKey = () => {
+    navigator.clipboard.writeText(pixKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setStep('processing');
     
-    // Simulação de chamada de API para o Gateway (Stripe/Mercado Pago)
+    // Simulação de chamada de API para o Gateway
     setTimeout(() => {
       setStep('success');
       setTimeout(() => {
@@ -35,7 +46,7 @@ const Payment: React.FC<PaymentProps> = ({ onComplete }) => {
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0f172a] text-center">
         <div className="w-20 h-20 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-8"></div>
         <h2 className="text-3xl font-black text-white mb-2">Processando Pagamento</h2>
-        <p className="text-slate-400">Estamos validando os dados com sua operadora...</p>
+        <p className="text-slate-400">Estamos validando o seu {method === 'pix' ? 'recebimento PIX' : 'cartão'}...</p>
       </div>
     );
   }
@@ -110,71 +121,104 @@ const Payment: React.FC<PaymentProps> = ({ onComplete }) => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
               Voltar aos planos
             </button>
-            <h2 className="text-3xl font-black text-white mb-2">Pagamento</h2>
-            <p className="text-slate-400 mb-8">Você escolheu o plano <span className="text-purple-400 font-bold">{selectedPlan?.name}</span>.</p>
             
-            <form onSubmit={handleCheckoutSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Número do Cartão</label>
-                <input 
-                  required
-                  type="text" 
-                  placeholder="0000 0000 0000 0000"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none"
-                  value={cardData.number}
-                  onChange={e => setCardData({...cardData, number: e.target.value})}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nome no Cartão</label>
-                <input 
-                  required
-                  type="text" 
-                  placeholder="COMO ESTÁ NO CARTÃO"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none uppercase"
-                  value={cardData.name}
-                  onChange={e => setCardData({...cardData, name: e.target.value})}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Validade</label>
-                  <input 
-                    required
-                    type="text" 
-                    placeholder="MM/AA"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none"
-                    value={cardData.expiry}
-                    onChange={e => setCardData({...cardData, expiry: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">CVV</label>
-                  <input 
-                    required
-                    type="text" 
-                    placeholder="123"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none"
-                    value={cardData.cvv}
-                    onChange={e => setCardData({...cardData, cvv: e.target.value})}
-                  />
-                </div>
-              </div>
-              
-              <div className="pt-4 space-y-4">
+            <h2 className="text-3xl font-black text-white mb-2">Checkout</h2>
+            <p className="text-slate-400 mb-8">Plano <span className="text-purple-400 font-bold">{selectedPlan?.name}</span> • R$ {selectedPlan?.price}</p>
+            
+            {/* Payment Method Tabs */}
+            <div className="flex bg-slate-900 rounded-2xl p-1 mb-8">
                 <button 
-                  type="submit"
-                  className="w-full py-5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xl shadow-xl shadow-purple-600/20 transition-all"
+                    onClick={() => setMethod('card')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${method === 'card' ? 'bg-purple-600 text-white' : 'text-slate-500 hover:text-white'}`}
                 >
-                  Confirmar R$ {selectedPlan?.price}
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                    Cartão
                 </button>
-                <div className="flex items-center justify-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-4" />
+                <button 
+                    onClick={() => setMethod('pix')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all ${method === 'pix' ? 'bg-purple-600 text-white' : 'text-slate-500 hover:text-white'}`}
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    PIX
+                </button>
+            </div>
+
+            {method === 'card' ? (
+                <form onSubmit={handleCheckoutSubmit} className="space-y-4 animate-in fade-in duration-300">
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Número do Cartão</label>
+                        <input required type="text" placeholder="0000 0000 0000 0000" className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none" value={cardData.number} onChange={e => setCardData({...cardData, number: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nome no Cartão</label>
+                        <input required type="text" placeholder="COMO ESTÁ NO CARTÃO" className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none uppercase" value={cardData.name} onChange={e => setCardData({...cardData, name: e.target.value})} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Validade</label>
+                            <input required type="text" placeholder="MM/AA" className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none" value={cardData.expiry} onChange={e => setCardData({...cardData, expiry: e.target.value})} />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">CVV</label>
+                            <input required type="text" placeholder="123" className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none" value={cardData.cvv} onChange={e => setCardData({...cardData, cvv: e.target.value})} />
+                        </div>
+                    </div>
+                    <button type="submit" className="w-full py-5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xl shadow-xl shadow-purple-600/20 transition-all mt-4">Confirmar Pagamento</button>
+                </form>
+            ) : (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <div className="bg-white p-4 rounded-3xl w-48 h-48 mx-auto shadow-2xl relative group">
+                        {/* Simulação de QR Code via SVG */}
+                        <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900">
+                            <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="none" stroke="currentColor" strokeWidth="4"/>
+                            <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="currentColor"/>
+                            <path d="M45 10v35h5v-35zM10 45h35v5h-35zM60 45h35v5h-35zM45 60v35h5v-35z" fill="currentColor" opacity="0.3"/>
+                            <rect x="45" y="45" width="10" height="10" rx="2" fill="#7c3aed"/>
+                        </svg>
+                        <div className="absolute inset-0 bg-purple-600/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl">
+                            <span className="text-purple-600 font-black text-[10px] uppercase tracking-tighter">Escaneie no App</span>
+                        </div>
+                    </div>
+
+                    <div className="text-center space-y-4">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Chave PIX (Telefone)</p>
+                            <div className="bg-slate-900 rounded-2xl p-4 flex items-center justify-between border border-slate-700">
+                                <span className="text-white font-black text-lg">{pixKey}</span>
+                                <button 
+                                    onClick={copyPixKey}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${copied ? 'bg-emerald-500 text-white' : 'bg-purple-600 text-white hover:bg-purple-500'}`}
+                                >
+                                    {copied ? 'Copiado!' : 'Copiar'}
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-purple-500/10 p-4 rounded-2xl border border-purple-500/20">
+                            <p className="text-xs text-purple-300 leading-relaxed">
+                                Abra o app do seu banco, escolha <b>PIX</b> e escaneie o código acima ou cole a chave. O acesso é liberado instantaneamente após a confirmação.
+                            </p>
+                        </div>
+
+                        <button 
+                            onClick={handleCheckoutSubmit}
+                            className="w-full py-5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-black text-xl shadow-xl shadow-purple-600/20 transition-all"
+                        >
+                            Já realizei o pagamento
+                        </button>
+                    </div>
                 </div>
-              </div>
-            </form>
+            )}
+            
+            <div className="mt-8 flex items-center justify-center gap-4 opacity-40 grayscale hover:grayscale-0 transition-all">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" className="h-4" />
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
+                <div className="h-4 w-[1px] bg-slate-700"></div>
+                <div className="flex items-center gap-1">
+                    <svg className="w-4 h-4 text-[#32b1a4]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 12l10 10 10-10L12 2zm0 17.5L4.5 12 12 4.5 19.5 12 12 19.5z"/></svg>
+                    <span className="text-[10px] font-black text-[#32b1a4] uppercase">Pix Seguro</span>
+                </div>
+            </div>
           </div>
         )}
       </div>

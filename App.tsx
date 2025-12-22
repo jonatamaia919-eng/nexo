@@ -95,6 +95,18 @@ const App: React.FC = () => {
     }
   };
 
+  const handlePasswordReset = (email: string, newPassword: string) => {
+    setAllUsers(prev => {
+      const index = prev.findIndex(u => u.email === email);
+      if (index >= 0) {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], password: newPassword };
+        return updated;
+      }
+      return prev;
+    });
+  };
+
   const handleLoginComplete = (email: string) => {
     const user = allUsers.find(u => u.email === email);
     if (user) {
@@ -155,7 +167,14 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case 'onboarding': return <Onboarding onComplete={handleOnboardingComplete} />;
-      case 'registration': return <Registration onComplete={handleRegistrationComplete} onLogin={handleLoginComplete} users={allUsers} />;
+      case 'registration': return (
+        <Registration 
+          onComplete={handleRegistrationComplete} 
+          onLogin={handleLoginComplete} 
+          onPasswordReset={handlePasswordReset}
+          users={allUsers} 
+        />
+      );
       case 'payment': return <Payment onComplete={handlePaymentComplete} />;
       case 'dashboard': return <Dashboard transactions={transactions} accounts={accounts} onAddTransaction={addTransaction} />;
       case 'charts': return <ChartsView transactions={transactions} />;
