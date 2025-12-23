@@ -8,10 +8,12 @@ interface DashboardProps {
   transactions: Transaction[];
   accounts: BankAccount[];
   onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
+  onUpdateTransaction: (t: Transaction) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTransaction }) => {
+const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTransaction, onUpdateTransaction }) => {
   const [showModal, setShowModal] = useState<'expense' | 'income' | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newT, setNewT] = useState({ description: '', amount: '', category: 'Outros' as Category, accountId: accounts[0]?.id || '' });
 
   const dynamicData = getDynamicMonthlyData();
@@ -25,18 +27,52 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
     .filter(t => t.type === 'expense' && new Date(t.date).getMonth() === now.getMonth() && new Date(t.date).getFullYear() === now.getFullYear())
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const handleAdd = () => {
-    if (!newT.description || !newT.amount || !newT.accountId || !showModal) return;
-    onAddTransaction({
-      description: newT.description,
-      amount: parseFloat(newT.amount),
-      category: showModal === 'income' ? 'Renda' : newT.category,
-      type: showModal,
-      date: new Date().toISOString(),
-      accountId: newT.accountId
+  const handleOpenEdit = (t: Transaction) => {
+    setEditingId(t.id);
+    setShowModal(t.type);
+    setNewT({
+      description: t.description,
+      amount: t.amount.toString(),
+      category: t.category,
+      accountId: t.accountId
     });
-    setNewT({ description: '', amount: '', category: 'Outros', accountId: accounts[0]?.id || '' });
+  };
+
+  const handleCloseModal = () => {
     setShowModal(null);
+    setEditingId(null);
+    setNewT({ description: '', amount: '', category: 'Outros', accountId: accounts[0]?.id || '' });
+  };
+
+  const handleSave = () => {
+    if (!newT.description || !newT.amount || !newT.accountId || !showModal) return;
+    
+    const amount = parseFloat(newT.amount);
+    
+    if (editingId) {
+      const original = transactions.find(t => t.id === editingId);
+      if (original) {
+        onUpdateTransaction({
+          ...original,
+          description: newT.description,
+          amount: amount,
+          category: showModal === 'income' ? 'Renda' : newT.category,
+          accountId: newT.accountId,
+          type: showModal
+        });
+      }
+    } else {
+      onAddTransaction({
+        description: newT.description,
+        amount: amount,
+        category: showModal === 'income' ? 'Renda' : newT.category,
+        type: showModal,
+        date: new Date().toISOString(),
+        accountId: newT.accountId
+      });
+    }
+    
+    handleCloseModal();
   };
 
   return (
@@ -105,7 +141,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
             </div>
           ) : (
             transactions.slice(0, 5).map(t => (
-              <div key={t.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-transparent hover:border-slate-700 transition-all">
+              <div key={t.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-transparent hover:border-slate-700 transition-all group">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl ${t.type === 'income' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-purple-600/20 text-purple-400'}`}>
                     {t.type === 'income' ? '+' : '-'}
@@ -117,13 +153,21 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
-                    {t.type === 'income' ? '' : '-'} R$ {t.amount.toFixed(2)}
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    {new Date(t.date).toLocaleDateString('pt-BR')}
-                  </p>
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className={`font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
+                      {t.type === 'income' ? '' : '-'} R$ {t.amount.toFixed(2)}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase">
+                      {new Date(t.date).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => handleOpenEdit(t)}
+                    className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-white transition-all bg-white/5 rounded-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                  </button>
                 </div>
               </div>
             ))
@@ -135,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in zoom-in duration-300">
           <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl">
             <h3 className="text-2xl font-black text-white mb-8">
-                {showModal === 'income' ? 'Adicionar Dinheiro' : 'Novo Gasto'}
+                {editingId ? 'Editar Movimentação' : (showModal === 'income' ? 'Adicionar Dinheiro' : 'Novo Gasto')}
             </h3>
             <div className="space-y-6">
               <div>
@@ -183,12 +227,12 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
                 </div>
               )}
               <div className="flex gap-4">
-                <button onClick={() => setShowModal(null)} className="flex-1 py-4 text-slate-400 font-bold">Cancelar</button>
+                <button onClick={handleCloseModal} className="flex-1 py-4 text-slate-400 font-bold">Cancelar</button>
                 <button
-                    onClick={handleAdd}
+                    onClick={handleSave}
                     className={`flex-[2] py-4 rounded-xl text-white font-bold text-lg shadow-lg transition-all ${showModal === 'income' ? 'bg-emerald-600' : 'bg-purple-600'}`}
                 >
-                    Confirmar
+                    {editingId ? 'Salvar Alterações' : 'Confirmar'}
                 </button>
               </div>
             </div>

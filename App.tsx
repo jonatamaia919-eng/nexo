@@ -95,18 +95,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePasswordReset = (email: string, newPassword: string) => {
-    setAllUsers(prev => {
-      const index = prev.findIndex(u => u.email === email);
-      if (index >= 0) {
-        const updated = [...prev];
-        updated[index] = { ...updated[index], password: newPassword };
-        return updated;
-      }
-      return prev;
-    });
-  };
-
   const handleLoginComplete = (email: string) => {
     const user = allUsers.find(u => u.email === email);
     if (user) {
@@ -149,6 +137,35 @@ const App: React.FC = () => {
     }));
   };
 
+  const updateTransaction = (updated: Transaction) => {
+    const oldTransaction = transactions.find(t => t.id === updated.id);
+    if (!oldTransaction) return;
+
+    // Atualiza a lista de transações
+    setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
+
+    // Ajusta o saldo das contas
+    setAccounts(prev => prev.map(acc => {
+      let newBalance = acc.balance;
+
+      // Reverte o impacto da transação antiga se for na mesma conta
+      if (acc.id === oldTransaction.accountId) {
+        newBalance = oldTransaction.type === 'income' 
+          ? newBalance - oldTransaction.amount 
+          : newBalance + oldTransaction.amount;
+      }
+
+      // Aplica o impacto da nova transação atualizada
+      if (acc.id === updated.accountId) {
+        newBalance = updated.type === 'income' 
+          ? newBalance + updated.amount 
+          : newBalance - updated.amount;
+      }
+
+      return { ...acc, balance: newBalance };
+    }));
+  };
+
   const addAccount = (acc: Omit<BankAccount, 'id'>) => {
     setAccounts([...accounts, { ...acc, id: Date.now().toString() }]);
   };
@@ -167,16 +184,9 @@ const App: React.FC = () => {
   const renderView = () => {
     switch (view) {
       case 'onboarding': return <Onboarding onComplete={handleOnboardingComplete} />;
-      case 'registration': return (
-        <Registration 
-          onComplete={handleRegistrationComplete} 
-          onLogin={handleLoginComplete} 
-          onPasswordReset={handlePasswordReset}
-          users={allUsers} 
-        />
-      );
+      case 'registration': return <Registration onComplete={handleRegistrationComplete} onLogin={handleLoginComplete} users={allUsers} />;
       case 'payment': return <Payment onComplete={handlePaymentComplete} />;
-      case 'dashboard': return <Dashboard transactions={transactions} accounts={accounts} onAddTransaction={addTransaction} />;
+      case 'dashboard': return <Dashboard transactions={transactions} accounts={accounts} onAddTransaction={addTransaction} onUpdateTransaction={updateTransaction} />;
       case 'charts': return <ChartsView transactions={transactions} />;
       case 'accounts': return <AccountsView accounts={accounts} onAddAccount={addAccount} onUpdateBalance={updateAccountBalance} />;
       case 'balance': return <BalanceView transactions={transactions} accounts={accounts} />;
@@ -185,7 +195,7 @@ const App: React.FC = () => {
         return isAdminAuthenticated 
           ? <AdminView users={allUsers} onBack={() => setView('dashboard')} />
           : <AdminLogin onAuthenticated={() => setIsAdminAuthenticated(true)} onBack={() => setView('dashboard')} />;
-      default: return <Dashboard transactions={transactions} accounts={accounts} onAddTransaction={addTransaction} />;
+      default: return <Dashboard transactions={transactions} accounts={accounts} onAddTransaction={addTransaction} onUpdateTransaction={updateTransaction} />;
     }
   };
 
