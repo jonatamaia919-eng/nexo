@@ -4,13 +4,20 @@ import { UserProfile } from '../types';
 
 interface AdminViewProps {
   users: UserProfile[];
+  onDeleteUser: (email: string) => void;
   onBack: () => void;
 }
 
-const AdminView: React.FC<AdminViewProps> = ({ users, onBack }) => {
+const AdminView: React.FC<AdminViewProps> = ({ users, onDeleteUser, onBack }) => {
   const totalUsers = users.length;
   const premiumUsers = users.filter(u => u.hasPaid).length;
   const freeUsers = totalUsers - premiumUsers;
+
+  const confirmDelete = (email: string, name: string) => {
+    if (window.confirm(`TEM CERTEZA?\n\nVocê está prestes a excluir permanentemente a conta de "${name}" (${email}).\n\nEsta ação não pode ser desfeita.`)) {
+        onDeleteUser(email);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-24 md:pb-0">
@@ -53,8 +60,8 @@ const AdminView: React.FC<AdminViewProps> = ({ users, onBack }) => {
                 <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500">Usuário</th>
                 <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500">Contato</th>
                 <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500">Plano</th>
-                <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500">Status Assinatura</th>
-                <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Expira em</th>
+                <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500">Status</th>
+                <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/30">
@@ -76,14 +83,14 @@ const AdminView: React.FC<AdminViewProps> = ({ users, onBack }) => {
                           {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-white font-bold">{user.name}</p>
+                          <p className="text-white font-bold">{user.name || 'Sem Nome'}</p>
                           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">ID: {idx + 1001}</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-6">
                        <p className="text-slate-300 text-sm font-medium">{user.email}</p>
-                       <p className="text-slate-500 text-xs mt-1">{user.phone || 'Nenhum telefone'}</p>
+                       <p className="text-slate-500 text-xs mt-1">{user.phone || 'Sem Telefone'}</p>
                     </td>
                     <td className="p-6">
                       <span className={`px-4 py-1 rounded-xl text-[10px] font-black uppercase tracking-widest inline-block ${user.hasPaid ? 'bg-purple-600/20 text-purple-400 border border-purple-600/30' : 'bg-slate-700/50 text-slate-400'}`}>
@@ -94,15 +101,18 @@ const AdminView: React.FC<AdminViewProps> = ({ users, onBack }) => {
                        <div className="flex items-center gap-2">
                           <div className={`w-2 h-2 rounded-full ${user.hasPaid ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`}></div>
                           <span className={`text-xs font-bold ${user.hasPaid ? 'text-emerald-400' : 'text-slate-500'}`}>
-                            {user.hasPaid ? 'Ativo' : 'Inativo'}
+                            {user.hasPaid ? 'Ativo' : 'Pendente'}
                           </span>
                        </div>
                     </td>
                     <td className="p-6 text-right">
-                       <p className="text-slate-300 text-sm font-bold">
-                         {user.subscriptionEndDate ? new Date(user.subscriptionEndDate).toLocaleDateString('pt-BR') : '-'}
-                       </p>
-                       <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Data Fixa</p>
+                       <button 
+                        onClick={() => confirmDelete(user.email!, user.name)}
+                        className="p-3 text-rose-500/50 hover:text-rose-500 bg-rose-500/0 hover:bg-rose-500/10 rounded-xl transition-all"
+                        title="Excluir conta definitivamente"
+                       >
+                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                       </button>
                     </td>
                   </tr>
                 ))
@@ -119,10 +129,9 @@ const AdminView: React.FC<AdminViewProps> = ({ users, onBack }) => {
           </svg>
         </div>
         <div>
-          <h4 className="text-white font-bold text-xl mb-1">Acesso à Base Local</h4>
+          <h4 className="text-white font-bold text-xl mb-1">Controle de Segurança ADM</h4>
           <p className="text-slate-400 text-sm leading-relaxed max-w-2xl">
-            Estes dados são persistidos no <b>localStorage</b> deste dispositivo. Para uma solução corporativa, 
-            os perfis seriam sincronizados com um banco de dados central (PostgreSQL/MongoDB) e autenticados via JWT para segurança absoluta.
+            Como administrador, você tem poder total sobre a base local. A exclusão de um usuário remove todos os seus dados vinculados ao e-mail deste navegador.
           </p>
         </div>
       </div>

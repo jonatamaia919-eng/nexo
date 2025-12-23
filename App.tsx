@@ -120,6 +120,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = (email: string) => {
+    setAllUsers(prev => prev.filter(u => u.email !== email));
+    // Se o usuário deletado for o atual, desloga ele
+    if (profile?.email === email) {
+      handleLogout();
+    }
+  };
+
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction = { ...transaction, id: Date.now().toString() };
     setTransactions([newTransaction, ...transactions]);
@@ -141,27 +149,20 @@ const App: React.FC = () => {
     const oldTransaction = transactions.find(t => t.id === updated.id);
     if (!oldTransaction) return;
 
-    // Atualiza a lista de transações
     setTransactions(prev => prev.map(t => t.id === updated.id ? updated : t));
 
-    // Ajusta o saldo das contas
     setAccounts(prev => prev.map(acc => {
       let newBalance = acc.balance;
-
-      // Reverte o impacto da transação antiga se for na mesma conta
       if (acc.id === oldTransaction.accountId) {
         newBalance = oldTransaction.type === 'income' 
           ? newBalance - oldTransaction.amount 
           : newBalance + oldTransaction.amount;
       }
-
-      // Aplica o impacto da nova transação atualizada
       if (acc.id === updated.accountId) {
         newBalance = updated.type === 'income' 
           ? newBalance + updated.amount 
           : newBalance - updated.amount;
       }
-
       return { ...acc, balance: newBalance };
     }));
   };
@@ -193,7 +194,7 @@ const App: React.FC = () => {
       case 'profile': return <ProfileView profile={profile} onLogout={handleLogout} />;
       case 'admin': 
         return isAdminAuthenticated 
-          ? <AdminView users={allUsers} onBack={() => setView('dashboard')} />
+          ? <AdminView users={allUsers} onDeleteUser={handleDeleteUser} onBack={() => setView('dashboard')} />
           : <AdminLogin onAuthenticated={() => setIsAdminAuthenticated(true)} onBack={() => setView('dashboard')} />;
       default: return <Dashboard transactions={transactions} accounts={accounts} onAddTransaction={addTransaction} onUpdateTransaction={updateTransaction} />;
     }
