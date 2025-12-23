@@ -12,6 +12,8 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
   const [isLoginMode, setIsLoginMode] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [socialModal, setSocialModal] = useState<'Google' | 'Apple' | null>(null);
+  const [customSocialEmail, setCustomSocialEmail] = useState('');
+  const [isAddingOther, setIsAddingOther] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -42,7 +44,7 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
     setTimeout(() => {
         setIsAuthenticating(false);
         setSocialModal(platform);
-    }, 800);
+    }, 600);
   };
 
   const selectSocialAccount = (accountName: string, accountEmail: string) => {
@@ -54,7 +56,7 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
             name: accountName,
             email: accountEmail,
             phone: '',
-            password: `social_${accountEmail}`
+            password: `social_secure_${btoa(accountEmail).substring(0, 8)}`
         });
     }, 1000);
   };
@@ -67,14 +69,14 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
         {isAuthenticating && (
             <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300">
                 <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-purple-300 font-bold animate-pulse">Conectando ao serviço seguro...</p>
+                <p className="text-purple-300 font-bold animate-pulse">Criptografando conexão...</p>
             </div>
         )}
 
         {/* Modal Simulado de Escolha de Conta */}
         {socialModal && (
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-md z-[90] flex items-center justify-center p-6 animate-in zoom-in duration-300">
-                <div className="bg-white w-full rounded-3xl overflow-hidden shadow-2xl text-slate-900">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-md z-[90] flex items-center justify-center p-6 animate-in zoom-in duration-300">
+                <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl text-slate-900">
                     <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             {socialModal === 'Google' ? (
@@ -87,48 +89,65 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
                             ) : (
                                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.05 20.28c-.96.95-2.21 1.72-3.72 1.72-1.47 0-2.32-.82-3.61-.82s-2.31.81-3.6.81c-1.51 0-2.81-.8-3.77-1.76-1.96-1.96-1.96-5.12 0-7.08.97-.96 2.27-1.48 3.73-1.48 1.43 0 2.22.49 3.5.49s2.06-.52 3.5-.52c1.45 0 2.76.54 3.73 1.51 1.83 1.83 1.83 4.79.24 6.13zm-5.05-13.62c0-1.89 1.53-3.41 3.41-3.41.05 0 .1 0 .15.01-.19 2.05-1.93 3.65-4 3.4-.04-.01-.08-.01-.12-.01l-.22.01-.22-.01z"/></svg>
                             )}
-                            <span className="font-bold text-slate-700">Fazer login com {socialModal}</span>
+                            <span className="font-bold text-slate-700 text-sm">Entrar com {socialModal}</span>
                         </div>
-                        <button onClick={() => setSocialModal(null)} className="text-slate-400 hover:text-slate-600">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        <button onClick={() => {setSocialModal(null); setIsAddingOther(false);}} className="text-slate-400 hover:text-slate-600">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                     </div>
                     <div className="p-4 space-y-2">
-                        <p className="text-sm text-slate-500 px-2 mb-4">Escolha uma conta para continuar no <span className="font-bold text-purple-600">NEXO</span></p>
-                        
-                        <button 
-                            onClick={() => selectSocialAccount('Seu Nome', 'voce@email.com')}
-                            className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-xl transition-colors text-left border border-transparent hover:border-slate-200"
-                        >
-                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold">V</div>
-                            <div>
-                                <p className="font-bold text-slate-900">Seu Nome Principal</p>
-                                <p className="text-xs text-slate-500">voce@email.com</p>
-                            </div>
-                        </button>
+                        {!isAddingOther ? (
+                            <>
+                                <p className="text-xs text-slate-500 px-2 mb-4">Escolha uma conta do {socialModal}</p>
+                                <button 
+                                    onClick={() => selectSocialAccount('Usuário Teste', 'teste@nexo.com.br')}
+                                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left border border-transparent hover:border-slate-100"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold text-xs">U</div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="font-bold text-slate-900 text-sm truncate">Usuário Simulado</p>
+                                        <p className="text-[10px] text-slate-500 truncate">teste@nexo.com.br</p>
+                                    </div>
+                                </button>
 
-                        <button 
-                            onClick={() => selectSocialAccount('Perfil Trabalho', 'trabalho@empresa.com')}
-                            className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-xl transition-colors text-left border border-transparent hover:border-slate-200"
-                        >
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold">T</div>
-                            <div>
-                                <p className="font-bold text-slate-900">Perfil Profissional</p>
-                                <p className="text-xs text-slate-500">trabalho@empresa.com</p>
+                                <button 
+                                    onClick={() => setIsAddingOther(true)}
+                                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left border border-transparent hover:border-slate-100"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                    </div>
+                                    <p className="font-medium text-slate-600 text-xs">Usar sua própria conta</p>
+                                </button>
+                            </>
+                        ) : (
+                            <div className="space-y-4 p-2 animate-in slide-in-from-right-2 duration-300">
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Qual seu e-mail do {socialModal}?</label>
+                                    <input 
+                                        type="email" 
+                                        autoFocus
+                                        placeholder="seu-email@exemplo.com"
+                                        className="w-full border-b-2 border-slate-200 focus:border-purple-600 outline-none py-2 text-sm font-medium"
+                                        value={customSocialEmail}
+                                        onChange={(e) => setCustomSocialEmail(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && customSocialEmail.includes('@') && selectSocialAccount(customSocialEmail.split('@')[0], customSocialEmail)}
+                                    />
+                                </div>
+                                <button 
+                                    disabled={!customSocialEmail.includes('@')}
+                                    onClick={() => selectSocialAccount(customSocialEmail.split('@')[0], customSocialEmail)}
+                                    className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm disabled:opacity-30 transition-opacity"
+                                >
+                                    Avançar
+                                </button>
+                                <button onClick={() => setIsAddingOther(false)} className="w-full text-slate-400 text-[10px] font-bold uppercase tracking-widest">Voltar</button>
                             </div>
-                        </button>
-
-                        <button 
-                            className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-xl transition-colors text-left border border-transparent hover:border-slate-200"
-                        >
-                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-                            </div>
-                            <p className="font-medium text-slate-600 text-sm">Usar outra conta</p>
-                        </button>
+                        )}
                     </div>
-                    <div className="p-6 bg-slate-50 text-[10px] text-slate-400 leading-relaxed">
-                        Para continuar, o Google compartilhará seu nome, endereço de e-mail, preferência de idioma e foto do perfil com o NEXO. Antes de usar este app, você pode revisar a política de privacidade e os termos de serviço do NEXO.
+                    <div className="p-4 bg-slate-50 text-[9px] text-slate-400 leading-tight">
+                        <span className="font-bold text-slate-500 block mb-1 uppercase tracking-tighter">Nota do Protótipo:</span>
+                        Esta é uma simulação visual de segurança. Em produção, os dados são validados diretamente pelos servidores do {socialModal} via HTTPS/SSL.
                     </div>
                 </div>
             </div>
@@ -139,7 +158,7 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
             {isLoginMode ? 'Entrar na conta' : 'Crie sua conta'}
           </h1>
           <p className="text-purple-300 mt-2">
-            {isLoginMode ? 'Bem-vindo de volta ao NEXO!' : 'Estamos quase lá! Identifique-se para salvar seus dados com segurança.'}
+            {isLoginMode ? 'Bem-vindo de volta ao NEXO!' : 'Identifique-se para salvar seus dados com segurança.'}
           </p>
         </div>
 
@@ -170,7 +189,7 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
 
         <div className="flex items-center gap-4 mb-8 text-slate-600">
             <div className="flex-1 h-px bg-slate-800"></div>
-            <span className="text-xs font-bold uppercase tracking-widest">ou entre com</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest">ou via formulário</span>
             <div className="flex-1 h-px bg-slate-800"></div>
         </div>
 
@@ -243,8 +262,8 @@ const Registration: React.FC<RegistrationProps> = ({ onComplete, onLogin, users 
             </button>
         </div>
 
-        <p className="mt-6 text-center text-slate-500 text-sm">
-          Seus dados estão protegidos por criptografia de ponta a ponta.
+        <p className="mt-6 text-center text-slate-500 text-[10px] uppercase tracking-widest font-bold opacity-60">
+          NEXO — Segurança de Ponta a Ponta
         </p>
       </div>
     </div>
