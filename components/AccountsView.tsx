@@ -14,11 +14,20 @@ const AccountsView: React.FC<AccountsViewProps> = ({ accounts, onAddAccount, onU
   const [newAcc, setNewAcc] = useState({ name: '', balance: '' });
   const [adjustValue, setAdjustValue] = useState('');
 
+  // Função para tratar o valor no formato BR
+  const parseBRL = (value: string): number => {
+    if (!value) return 0;
+    // Remove pontos de milhar e substitui vírgula por ponto
+    const cleanValue = value.replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleanValue) || 0;
+  };
+
   const handleAdd = () => {
-    if (!newAcc.name || !newAcc.balance) return;
+    const numericBalance = parseBRL(newAcc.balance);
+    if (!newAcc.name || numericBalance < 0) return;
     onAddAccount({
       name: newAcc.name,
-      balance: parseFloat(newAcc.balance),
+      balance: numericBalance,
       color: 'bg-purple-600'
     });
     setNewAcc({ name: '', balance: '' });
@@ -26,8 +35,9 @@ const AccountsView: React.FC<AccountsViewProps> = ({ accounts, onAddAccount, onU
   };
 
   const handleAdjustSubmit = () => {
-    if (adjustingAccount && adjustValue !== '') {
-      onUpdateBalance(adjustingAccount.id, parseFloat(adjustValue));
+    const numericBalance = parseBRL(adjustValue);
+    if (adjustingAccount) {
+      onUpdateBalance(adjustingAccount.id, numericBalance);
       setAdjustingAccount(null);
       setAdjustValue('');
     }
@@ -63,12 +73,12 @@ const AccountsView: React.FC<AccountsViewProps> = ({ accounts, onAddAccount, onU
               <div>
                 <h3 className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">{acc.name}</h3>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Saldo Atual</p>
-                <h4 className="text-4xl font-black text-white mt-2">R$ {acc.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h4>
+                <h4 className="text-4xl font-black text-white mt-2">R$ {acc.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>
               </div>
             </div>
             <div className="mt-auto border-t border-slate-700/50 p-6 flex gap-4">
                 <button 
-                  onClick={() => { setAdjustingAccount(acc); setAdjustValue(acc.balance.toString()); }}
+                  onClick={() => { setAdjustingAccount(acc); setAdjustValue(acc.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })); }}
                   className="flex-1 py-3 text-sm font-bold bg-white/5 rounded-xl hover:bg-white/10 transition-colors"
                 >
                   Ajustar Saldo
@@ -105,9 +115,10 @@ const AccountsView: React.FC<AccountsViewProps> = ({ accounts, onAddAccount, onU
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Saldo Inicial</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Saldo Inicial (R$)</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0,00"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white outline-none"
                   value={newAcc.balance}
@@ -135,10 +146,11 @@ const AccountsView: React.FC<AccountsViewProps> = ({ accounts, onAddAccount, onU
             <p className="text-slate-400 text-sm mb-8">Defina o saldo atual da conta <span className="text-purple-400 font-bold">{adjustingAccount.name}</span></p>
             <div className="space-y-6">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Novo Saldo Atual</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Novo Saldo Atual (R$)</label>
                 <input
                   autoFocus
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0,00"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white outline-none text-2xl font-black"
                   value={adjustValue}

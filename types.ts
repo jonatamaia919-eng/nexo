@@ -20,37 +20,45 @@ export interface BankAccount {
   color: string;
 }
 
+/**
+ * UserProfile interface updated to include optional fields used across the application.
+ */
+export interface UserProfile {
+  name: string;
+  email: string;
+  password?: string;
+  phone?: string;
+  onboardingData?: {
+    anotaGastos: string;
+    maiorPeso: string;
+    objetivo: string;
+  };
+  hasPaid?: boolean;
+  subscriptionEndDate?: string;
+}
+
+/**
+ * CreditCard interface for managing card details and limits.
+ */
 export interface CreditCard {
   id: string;
   name: string;
   limit: number;
-  lastFour: string;
   dueDay: number;
   closingDay: number;
+  lastFour: string;
   color: string;
 }
 
+/**
+ * Expense interface specifically for credit card transactions.
+ */
 export interface Expense {
   id: string;
-  amount: number;
   cardId: string;
+  amount: number;
   description: string;
-  category: Category;
   date: string;
 }
 
-export interface UserProfile {
-  name: string;
-  email?: string;
-  phone?: string;
-  password?: string;
-  hasPaid: boolean;
-  subscriptionEndDate?: string;
-  onboardingData: {
-    anotaGastos: string;
-    maiorPeso: string;
-    objetivo: string;
-  } | null;
-}
-
-export type AppView = 'onboarding' | 'registration' | 'payment' | 'dashboard' | 'charts' | 'accounts' | 'balance' | 'profile' | 'admin';
+export type AppView = 'login' | 'dashboard' | 'charts' | 'accounts' | 'balance' | 'profile';

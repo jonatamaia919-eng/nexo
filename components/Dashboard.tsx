@@ -8,12 +8,10 @@ interface DashboardProps {
   transactions: Transaction[];
   accounts: BankAccount[];
   onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
-  onUpdateTransaction: (t: Transaction) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTransaction, onUpdateTransaction }) => {
+const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTransaction }) => {
   const [showModal, setShowModal] = useState<'expense' | 'income' | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [newT, setNewT] = useState({ description: '', amount: '', category: 'Outros' as Category, accountId: accounts[0]?.id || '' });
 
   const dynamicData = getDynamicMonthlyData();
@@ -27,52 +25,28 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
     .filter(t => t.type === 'expense' && new Date(t.date).getMonth() === now.getMonth() && new Date(t.date).getFullYear() === now.getFullYear())
     .reduce((acc, curr) => acc + curr.amount, 0);
 
-  const handleOpenEdit = (t: Transaction) => {
-    setEditingId(t.id);
-    setShowModal(t.type);
-    setNewT({
-      description: t.description,
-      amount: t.amount.toString(),
-      category: t.category,
-      accountId: t.accountId
+  // Função para tratar o valor no formato BR
+  const parseBRL = (value: string): number => {
+    if (!value) return 0;
+    // Remove pontos de milhar e substitui vírgula por ponto
+    const cleanValue = value.replace(/\./g, '').replace(',', '.');
+    return parseFloat(cleanValue) || 0;
+  };
+
+  const handleAdd = () => {
+    const numericAmount = parseBRL(newT.amount);
+    if (!newT.description || numericAmount <= 0 || !newT.accountId || !showModal) return;
+    
+    onAddTransaction({
+      description: newT.description,
+      amount: numericAmount,
+      category: showModal === 'income' ? 'Renda' : newT.category,
+      type: showModal,
+      date: new Date().toISOString(),
+      accountId: newT.accountId
     });
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(null);
-    setEditingId(null);
     setNewT({ description: '', amount: '', category: 'Outros', accountId: accounts[0]?.id || '' });
-  };
-
-  const handleSave = () => {
-    if (!newT.description || !newT.amount || !newT.accountId || !showModal) return;
-    
-    const amount = parseFloat(newT.amount);
-    
-    if (editingId) {
-      const original = transactions.find(t => t.id === editingId);
-      if (original) {
-        onUpdateTransaction({
-          ...original,
-          description: newT.description,
-          amount: amount,
-          category: showModal === 'income' ? 'Renda' : newT.category,
-          accountId: newT.accountId,
-          type: showModal
-        });
-      }
-    } else {
-      onAddTransaction({
-        description: newT.description,
-        amount: amount,
-        category: showModal === 'income' ? 'Renda' : newT.category,
-        type: showModal,
-        date: new Date().toISOString(),
-        accountId: newT.accountId
-      });
-    }
-    
-    handleCloseModal();
+    setShowModal(null);
   };
 
   return (
@@ -103,14 +77,14 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-purple-900/30 p-8 rounded-[2.5rem] border border-purple-800/50 shadow-xl">
           <p className="text-purple-300 font-bold uppercase tracking-widest text-xs mb-2">Saldo Total (Dinheiro)</p>
-          <h3 className="text-5xl font-black text-white">R$ {totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h3>
+          <h3 className="text-5xl font-black text-white">R$ {totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           <p className="mt-4 text-slate-400 text-sm font-medium">Soma de todas as suas contas bancárias.</p>
         </div>
 
         <div className="bg-slate-800/40 p-8 rounded-[2.5rem] border border-slate-700/50 shadow-xl lg:col-span-2">
           <div className="flex justify-between items-center mb-6">
             <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Seu dinheiro no tempo</p>
-            <div className="text-xs text-emerald-400 font-bold bg-emerald-400/10 px-3 py-1 rounded-full">Gastos em {capitalizedMonth}: R$ {totalSpentMonth.toFixed(2)}</div>
+            <div className="text-xs text-emerald-400 font-bold bg-emerald-400/10 px-3 py-1 rounded-full">Gastos em {capitalizedMonth}: R$ {totalSpentMonth.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
           </div>
           <div className="h-[180px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -120,6 +94,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                   contentStyle={{ backgroundColor: '#1e1b4b', borderRadius: '12px', border: 'none' }}
                   labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Valor']}
                 />
                 <Bar dataKey="amount" radius={[8, 8, 8, 8]}>
                   {dynamicData.map((entry, index) => (
@@ -141,7 +116,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
             </div>
           ) : (
             transactions.slice(0, 5).map(t => (
-              <div key={t.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-transparent hover:border-slate-700 transition-all group">
+              <div key={t.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-transparent hover:border-slate-700 transition-all">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl ${t.type === 'income' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-purple-600/20 text-purple-400'}`}>
                     {t.type === 'income' ? '+' : '-'}
@@ -153,21 +128,13 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className={`font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
-                      {t.type === 'income' ? '' : '-'} R$ {t.amount.toFixed(2)}
-                    </p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase">
-                      {new Date(t.date).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => handleOpenEdit(t)}
-                    className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-white transition-all bg-white/5 rounded-lg"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                  </button>
+                <div className="text-right">
+                  <p className={`font-black ${t.type === 'income' ? 'text-emerald-400' : 'text-white'}`}>
+                    {t.type === 'income' ? '' : '-'} R$ {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    {new Date(t.date).toLocaleDateString('pt-BR')}
+                  </p>
                 </div>
               </div>
             ))
@@ -179,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in zoom-in duration-300">
           <div className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 border border-slate-800 shadow-2xl">
             <h3 className="text-2xl font-black text-white mb-8">
-                {editingId ? 'Editar Movimentação' : (showModal === 'income' ? 'Adicionar Dinheiro' : 'Novo Gasto')}
+                {showModal === 'income' ? 'Adicionar Dinheiro' : 'Novo Gasto'}
             </h3>
             <div className="space-y-6">
               <div>
@@ -194,9 +161,10 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Valor</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Valor (R$)</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0,00"
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-purple-600 outline-none"
                     value={newT.amount}
@@ -227,12 +195,12 @@ const Dashboard: React.FC<DashboardProps> = ({ transactions, accounts, onAddTran
                 </div>
               )}
               <div className="flex gap-4">
-                <button onClick={handleCloseModal} className="flex-1 py-4 text-slate-400 font-bold">Cancelar</button>
+                <button onClick={() => setShowModal(null)} className="flex-1 py-4 text-slate-400 font-bold">Cancelar</button>
                 <button
-                    onClick={handleSave}
+                    onClick={handleAdd}
                     className={`flex-[2] py-4 rounded-xl text-white font-bold text-lg shadow-lg transition-all ${showModal === 'income' ? 'bg-emerald-600' : 'bg-purple-600'}`}
                 >
-                    {editingId ? 'Salvar Alterações' : 'Confirmar'}
+                    Confirmar
                 </button>
               </div>
             </div>

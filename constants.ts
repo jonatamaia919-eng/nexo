@@ -1,5 +1,23 @@
 
-import { Category } from './types';
+import { Category, UserProfile } from './types';
+
+export const AUTHORIZED_USERS: UserProfile[] = [
+  {
+    email: "acesso@nexo.com.br",
+    password: "nexo2025",
+    name: "Usuário Autorizado"
+  },
+  {
+    email: "usuario1@nexo.com.br",
+    password: "nexo123",
+    name: "Usuário NEXO"
+  },
+  {
+    email: "admin@nexo.com.br",
+    password: "adminnexo",
+    name: "Administrador"
+  }
+];
 
 export const CATEGORIES: Category[] = [
   'Alimentação',
@@ -12,17 +30,16 @@ export const CATEGORIES: Category[] = [
 ];
 
 export const CATEGORY_COLORS: Record<Category, string> = {
-  'Alimentação': '#C084FC', // Lilac
-  'Transporte': '#818CF8', // Indigo-ish
-  'Moradia': '#A78BFA', // Violet
-  'Lazer': '#F472B6',   // Pink
-  'Saúde': '#F87171',   // Red
-  'Educação': '#34D399', // Emerald
-  'Outros': '#94A3B8',   // Slate
-  'Renda': '#10B981'    // Emerald Green
+  'Alimentação': '#C084FC',
+  'Transporte': '#818CF8',
+  'Moradia': '#A78BFA',
+  'Lazer': '#F472B6',
+  'Saúde': '#F87171',
+  'Educação': '#34D399',
+  'Outros': '#94A3B8',
+  'Renda': '#10B981'
 };
 
-// Gera dinamicamente os últimos 6 meses para os gráficos
 export const getDynamicMonthlyData = () => {
   const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const data = [];
@@ -32,12 +49,10 @@ export const getDynamicMonthlyData = () => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     data.push({
       month: months[d.getMonth()],
-      amount: Math.floor(Math.random() * 2000) + 1500, // Dados simulados para o gráfico histórico
+      amount: Math.floor(Math.random() * 2000) + 1500,
       fullMonth: d.getMonth(),
       year: d.getFullYear()
     });
   }
   return data;
 };
-
-export const MOCK_MONTHLY_DATA = getDynamicMonthlyData();
